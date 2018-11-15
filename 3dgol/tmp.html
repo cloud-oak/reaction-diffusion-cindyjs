@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<script type="text/javascript" src="https://cindyjs.org/dist/snapshot/Cindy.js"></script>
+		<script type="text/javascript" src="https://cindyjs.org/dist/snapshot/CindyGL.js"></script>
+		<title>3dgol</title>
+	</head>
+
+	<body style="background:black;">
+		<div id="CSCanvas" class="CindyJS-widget" style="position: relative; width: 512px; height: 512px;"></div>
+		<script id="csdraw" type="text/x-cindyscript">
+			canvas((0, 0), (4096, 0), "state",
+				x0 = 256 * mod(t, 16);
+				y0 = 256 * floor(t / 16);
+				drawimage((x0, y0), (x0 + 256, y0), "current")
+			);
+			colorplot((-.5, -.5), (255.5, -.5), "current", newstate(#.x, #.y));
+			target = [127,127,127];
+			origin = 312 * [
+				cos(lambda)*cos(phi),
+				sin(phi),
+				sin(lambda)*cos(phi)
+			] + [127, 127, 127];
+			mdir = (target-origin)/|(target-origin)|;
+			v = cross([0,1,0], mdir);
+			w = cross(mdir, v);
+			v = v/|v|;
+			w = w/|w|;
+			colorplot(
+				dir = mdir + #.x*v + #.y*w;
+				raytrace() //computes the color of the intersection of ray(t):=origin+t*dir with the scene
+			);
+			t = mod(t + 1, 256);
+		</script>
+		<script id="csinit" type="text/x-cindyscript">
+			lambda = 0;
+			phi = 0;
+			createimage("state", 4096, 4096);
+			createimage("current", 256, 256);
+			get(tx, ty) := imagergb((-.5, -.5), (255.5, -.5), "current", (tx, ty), interpolate->false, repeat->true).r;
+			voxelAt(p) := (
+				if(p.x<0 % p.y < 0 % p.z < 0 % p.x > 255 % p.y > 255 % p.z > 255,
+					0
+				,
+					1
+					// imagergb((-.5, -.5), (4095.5, -.5), "state",
+					// 	(floor(p.x + 256 * mod(p.z, 16)), floor(p.y + 256 * floor(p.z / 16))),
+					// 	interpolate->false, repeat->false
+					// ).r;
+				);
+			);
+			colorplot("current", if(random() > 0.6, 1, 0)); //random stuff as starting image
+			t = 0;
+			nbhds = [(-1,-1), (-1,0), (-1,+1), (0,-1), (0,+1), (+1,-1), (+1,0), (+1,+1)];
+			countneighbors(x, y) := sum( apply(nbhds, delta, get(delta.x + x, delta.y + y)));
+
+			newstate(x, y) := (
+				number = countneighbors(x, y); //number of living neighbors
+				if(get(x, y) == 1,
+				//if the cell lives then it will die if it has less than 2 neighbours or more than 3 neighbours
+					if((number < 2) % (number > 3), 0, 1)
+				, // else
+					//if cell was dead then 3 are required to be born
+					if(number == 3, 1, 0)
+				)
+			);
+			ray(t) := origin + t * dir;
+			raytrace()  := (
+				a = 0;
+				repeat(512,
+					a = a + voxelAt(ray(#));
+				);
+				a / 256;
+			);
+		</script>
+		<script id="csmousedrag" type="text/x-cindyscript">
+			d = mouse()-lastmouse;
+			lambda = lambda-d.x;
+			phi = phi-d.y;
+			lastmouse = mouse();
+		</script>
+		<script id="csmousedown" type="text/x-cindyscript">
+			lastmouse = mouse();
+		</script>
+		<script type="text/javascript">
+			CindyJS({
+				scripts: "cs*",
+				autoplay: true,
+				ports: [{
+					id: "CSCanvas",
+					width: 512,
+					height: 512,
+					transform: [{
+						visibleRect: [-1, 1, 1, -1]
+					}]
+				}]
+			});
+		</script>
+	</body>
+</html>

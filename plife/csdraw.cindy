@@ -1,0 +1,7 @@
+// colorplot("state", newstate(#.x, #.y));
+step();
+repeat(N, k,
+ 	coords = imagergba(Lc, Rc, "x", (k, 0), interpolate->false);
+	c = getcolor(k);
+ 	draw((coords_1, coords_2), color->COLORS_c); // TODO: color
+);

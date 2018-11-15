@@ -1,0 +1,84 @@
+N = 2; // number of particles
+C = 2;   // number of colors
+h = 0.1; // stepsize
+k = 3;   // steps per frame
+WIDTH  = 128;
+HEIGHT = 128;
+
+RADIUS = 5.0;
+DIAMETER = 2.0 * RADIUS;
+RSMOOTH = 2.0;
+
+COLORS = [
+	(1,0,0), (0,1,0), (0,0,1),
+	(0,1,1), (1,0,1), (1,1,0)
+];
+
+minR = [[1.0]];
+maxR = [[1.0]];
+attr = [[1.0]];
+
+getcolor(i) := floor((i-1) / N * C) + 1;
+
+setpopulation(classes, number) := (
+	C = classes;
+	N = number;
+	createimage("x", N, 2);
+	createimage("dv", N, 1);
+	Lc = [.5,-.5];
+	Rc = [N+.5,-.5];
+);
+
+reseed(attractmean, attractstd, minrlower, minrupper, maxrlower, maxrupper, friction, flatforce) := (
+	minR = zeromatrix(C, C);
+	maxR = zeromatrix(C, C);
+	attr = zeromatrix(C, C);
+	repeat(C, i, repeat(C, j,
+		if(i == j,
+			attr_i_j = -abs(attractmean + randomnormal() * attractstd);
+			minR_i_j = DIAMETER;
+		, // else
+			attr_i_j = attractmean + randomnormal() * attractstd;
+			minR_i_j = max(minrlower + random() * (minrupper - minrlower), DIAMETER);
+		);
+		maxR_i_J = max(maxrlower + random() * (maxrupper - maxrlower), minR_i_j);
+	));
+	// symmetrize
+	repeat(C, i, repeat(C, j,
+		minR_j_i = minR_i_j;
+		maxR_j_i = maxR_i_j
+	));
+
+	colorplot("x", (random() * WIDTH, random() * HEIGHT, 0));
+	// colorplot("dv", -100 + random() * 200)
+);
+
+setpopulation(6, 40);
+reseed(0.02, 0.05, 0.0, 20.0, 20.0, 50.0, 0.05, false);
+
+step() := (
+	colorplot(Lc, Rc, "dv",
+		k  = round(#.x);
+		xk = imagergb(Lc, Rc, "x", (k, 0), interpolate->false);
+		vk = imagergb(Lc, Rc, "x", (i, 1), interpolate->false);
+		// ck = getcolor(k);
+		dv = [0,0,0];
+		repeat(N, j, if(k != j,
+			xj = imagergb(Lc, Rc, "x", (j, 0), interpolate->false);
+			// cj = 2; // cj = getcolor(j);
+			diff = xk - xj;
+			dist = |diff|;
+			f = 0.0;
+			if((dist <= maxR_1_1) & (dist > 0.1), // <= maxR_ck_cj
+				diffnorm = diff / dist;
+				// Calculate Force
+				// f = 2.0 * abs(dist - 0.5 * (maxR_ck_cj = minR_ck_cj)) / (maxR_ck_cj - minR_ck_cj);
+			, // else
+				// f = RSMOOTH * minR_ck_cj * (1.0 / (minR_ck_cj + RSMOOTH) - 1.0 / (dist + RSMOOTH));
+			);
+			dv = dv + [f * diffnorm_1, f * diffnorm_2, 0];
+		));	
+		dv
+	);
+	// colorplot(x,y,"v",)
+);

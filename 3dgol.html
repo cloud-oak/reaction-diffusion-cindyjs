@@ -7,7 +7,7 @@
 		<title>3dgol</title>
 	</head>
 
-	<body style="background:#3f3f3f;">
+	<body style="background:#000;">
 		<div id="CSCanvas" class="CindyJS-widget" style="position: relative; width: 512px; height: 512px;"></div>
 		<script id="csdraw" type="text/x-cindyscript">
 			canvas((0, 0), (statewidth, 0), "state",
@@ -29,15 +29,15 @@
 			w = w/|w|;
 			colorplot(
 				dir = mdir + #.x*v + #.y*w;
-				raytrace() //computes the color of the intersection of ray(t):=origin+t*dir with the scene
+				raytrace()
 			);
 			t = mod(t + 1, EXTENT);
 		</script>
 		<script id="csinit" type="text/x-cindyscript">
-			EXTENT = 128; // Extent of the cube for each dimension
+			EXTENT = 32; // Extent of the cube for each dimension
 			statewidth   = EXTENT * EXTENT;
 			stateheight  = EXTENT;
-			while(statewidth > 4096,
+			while(statewidth > 2 * stateheight,
 				statewidth  = statewidth / 2;
 				stateheight = stateheight * 2;
 			);
@@ -49,7 +49,7 @@
 			zoom = 1.1;
 			createimage("state", statewidth, stateheight);
 			createimage("current", EXTENT, EXTENT);
-			get(tx, ty) := imagergb((-.5, -.5), (EXTENT-.5, -.5), "current", (tx, ty), interpolate->false, repeat->false).r;
+			get(tx, ty) := imagergb((-.5, -.5), (EXTENT-.5, -.5), "current", (tx, ty), interpolate->false, repeat->true).r;
 			voxelAt(p) := (
 				if(p.x<0 % p.y < 0 % p.z < 0 % p.x > EXTENT % p.y > EXTENT % p.z > EXTENT,
 					0
@@ -80,11 +80,10 @@
 			raytrace()  := (
 				a = 0;
 				stepsize = zoom * EXTENT * 1.73205080757 / 512;
-				// stepsize=1;
 				repeat(512,
 					a = a + voxelAt(ray(# * stepsize));
 				);
-				re(sqrt(a / (EXTENT / 4))); // 4 for EXTENT = 32
+				[a / 32, a / 64, 0];
 			);
 		</script>
 		<script id="csmousedrag" type="text/x-cindyscript">

@@ -16,6 +16,9 @@
 				drawimage((x0, y0), (x0 + EXTENT, y0), "current")
 			);
 			colorplot((-.5, -.5), (EXTENT-.5, -.5), "current", newstate(#.x, #.y));
+			//colorplot((-.5, -.5), (EXTENT-.5, -.5), "current", [get(#.x, #.y), countneighbors(#.x, #.y), 0]);
+
+			// Ab hier: 3D
 			target = [EXTENT,EXTENT,EXTENT]/2;
 			origin = zoom * EXTENT * [
 				cos(lambda)*cos(phi),
@@ -31,6 +34,9 @@
 				dir = mdir + #.x*v + #.y*w;
 				raytrace()
 			);
+
+			drawimage((-1, .5), (-.5, .5), "current", interpolate->false);
+
 			t = mod(t + 1, EXTENT);
 		</script>
 		<script id="csinit" type="text/x-cindyscript">
@@ -49,13 +55,13 @@
 			zoom = 1.1;
 			createimage("state", statewidth, stateheight);
 			createimage("current", EXTENT, EXTENT);
-			get(tx, ty) := imagergb((-.5, -.5), (EXTENT-.5, -.5), "current", (tx, ty), interpolate->false, repeat->true).r;
+			get(tx, ty) := imagergb((-.5, -.5), (EXTENT-.5, -.5), "current", (tx, ty), interpolate->false, repeat->false).r;
 			voxelAt(p) := (
-				if(p.x<0 % p.y < 0 % p.z < 0 % p.x > EXTENT % p.y > EXTENT % p.z > EXTENT,
+				if(p.x<0 % p.y < 0 % p.z < 0 % p.x >= EXTENT % p.y >= EXTENT % p.z >= EXTENT,
 					0
 				,
 					p.y = mod(EXTENT - floor(p.y) + t, EXTENT);
-					imagergb((-.5, -.5), (statewidth-.5, -.5), "state",
+					imagergb((0, 0), (statewidth, 0), "state",
 						(p.x + EXTENT * mod(p.y, TILESX), p.z + EXTENT * floor(p.y / TILESX)),
 						interpolate->false, repeat->false
 					).r;
@@ -69,10 +75,8 @@
 			newstate(x, y) := (
 				number = countneighbors(x, y); //number of living neighbors
 				if(get(x, y) == 1,
-				//if the cell lives then it will die if it has less than 2 neighbours or more than 3 neighbours
 					if((number < 2) % (number > 3), 0, 1)
 				, // else
-					//if cell was dead then 3 are required to be born
 					if(number == 3, 1, 0)
 				)
 			);
@@ -83,7 +87,7 @@
 				repeat(512,
 					a = a + voxelAt(ray(# * stepsize));
 				);
-				[a / 32, a / 64, 0];
+				1 - (re(sqrt(a)) / 16)
 			);
 		</script>
 		<script id="csmousedrag" type="text/x-cindyscript">

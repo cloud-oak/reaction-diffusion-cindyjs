@@ -10,16 +10,9 @@
 	<body style="background:#000;">
 		<div id="CSCanvas" class="CindyJS-widget" style="position: relative; width: 512px; height: 512px;"></div>
 		<script id="csdraw" type="text/x-cindyscript">
-			canvas((0, 0), (statewidth, 0), "state",
-				x0 = EXTENT * mod(t, TILESX);
-				y0 = EXTENT * floor(t / TILESX);
-				drawimage((x0, y0), (x0 + EXTENT, y0), "current")
-			);
-			colorplot((-.5, -.5), (EXTENT-.5, -.5), "current", newstate(#.x, #.y));
-			//colorplot((-.5, -.5), (EXTENT-.5, -.5), "current", [get(#.x, #.y), countneighbors(#.x, #.y), 0]);
+			//colorplot((0, 0), (statewidth, 0), "state", newstate(#));
 
 			// Ab hier: 3D
-			target = [EXTENT,EXTENT,EXTENT]/2;
 			origin = zoom * EXTENT * [
 				cos(lambda)*cos(phi),
 				sin(phi),
@@ -35,12 +28,12 @@
 				raytrace()
 			);
 
-			drawimage((-1, .5), (-.5, .5), "current", interpolate->false);
-
 			t = mod(t + 1, EXTENT);
 		</script>
 		<script id="csinit" type="text/x-cindyscript">
-			EXTENT = 32; // Extent of the cube for each dimension
+			EXTENT = 64; // Extent of the cube for each dimension
+
+			target = [EXTENT,EXTENT,EXTENT]/2;
 			statewidth   = EXTENT * EXTENT;
 			stateheight  = EXTENT;
 			while(statewidth > 2 * stateheight,
@@ -54,40 +47,70 @@
 			phi = pi / 8;
 			zoom = 1.1;
 			createimage("state", statewidth, stateheight);
-			createimage("current", EXTENT, EXTENT);
-			get(tx, ty) := imagergb((-.5, -.5), (EXTENT-.5, -.5), "current", (tx, ty), interpolate->false, repeat->false).r;
+			
+			spacepoint(t) := (
+				mod(t.x, EXTENT),
+				mod(t.y, EXTENT),
+				floor(t.x / EXTENT) + TILESX * floor(t.y / EXTENT)
+			);
 			voxelAt(p) := (
 				if(p.x<0 % p.y < 0 % p.z < 0 % p.x >= EXTENT % p.y >= EXTENT % p.z >= EXTENT,
 					0
 				,
-					p.y = mod(EXTENT - floor(p.y) + t, EXTENT);
 					imagergb((0, 0), (statewidth, 0), "state",
-						(p.x + EXTENT * mod(p.y, TILESX), p.z + EXTENT * floor(p.y / TILESX)),
+						(floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
+						floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
 						interpolate->false, repeat->false
-					).r;
-				);
-			);
-			colorplot("current", if(random() > 0.6, 1, 0)); //random stuff as starting image
-			t = 0;
-			nbhds = [(-1,-1), (-1,0), (-1,+1), (0,-1), (0,+1), (+1,-1), (+1,0), (+1,+1)];
-			countneighbors(x, y) := sum( apply(nbhds, delta, get(delta.x + x, delta.y + y)));
-
-			newstate(x, y) := (
-				number = countneighbors(x, y); //number of living neighbors
-				if(get(x, y) == 1,
-					if((number < 2) % (number > 3), 0, 1)
-				, // else
-					if(number == 3, 1, 0)
+					).g
 				)
+			);
+			get(p) := (
+				if(p.x<0, p.x = p.x + EXTENT, if(p.x>=EXTENT, p.x = p.x - EXTENT));
+				if(p.y<0, p.y = p.y + EXTENT, if(p.y>=EXTENT, p.y = p.y - EXTENT));
+				if(p.z<0, p.z = p.z + EXTENT, if(p.z>=EXTENT, p.z = p.z - EXTENT));
+				imagergb((0, 0), (statewidth, 0), "state",
+					(floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
+					floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
+					interpolate->false, repeat->false
+				)
+			);
+
+			da = 0.05;
+			db = 0.02;
+			k = 0.06;
+			f = 0.05;
+			// da = 0.2;
+			// db = 0.1;
+			// k = 0.06;
+			// f = 0.035;
+
+			// initialize cube
+			colorplot((0, 0), (statewidth, 0), "state", 
+				pt = spacepoint(#);
+				if(|pt - target| <= 16,
+					[1, 1, 0],
+					[0, 0, 0]
+				)
+			);
+
+			deltas = [(-1,0,0), (1,0,0), (0,-1,0), (0,1,0), (0,0,-1), (0,0,1)];
+			newstate(hash) := (
+				pt = spacepoint(hash);
+				val = get(pt);
+				laplacian = -6 * val + sum(apply(deltas, d, get(pt + d)));
+				deltax = da * laplacian.x - val.x * val.y * val.y + f * (1-val.x);
+				deltay = db * laplacian.y + val.x * val.y * val.y - (k+f) * val.y;
+				(val.x + deltax, val.y + deltay, 0)
 			);
 			ray(t) := origin + t * dir;
 			raytrace()  := (
-				a = 0;
+				c = 0;
 				stepsize = zoom * EXTENT * 1.73205080757 / 512;
 				repeat(512,
-					a = a + voxelAt(ray(# * stepsize));
+					c = c + voxelAt(ray(# * stepsize));
 				);
-				1 - (re(sqrt(a)) / 16)
+				c = c / 64;
+				[c, c^2, c^3]
 			);
 		</script>
 		<script id="csmousedrag" type="text/x-cindyscript">
@@ -98,6 +121,9 @@
 		</script>
 		<script id="csmousedown" type="text/x-cindyscript">
 			lastmouse = mouse();
+		</script>
+		<script id="cskeydown" type="text/x-cindyscript">
+			if(keycode()==32, repeat(10, colorplot((0, 0), (statewidth, 0), "state", newstate(#))));
 		</script>
 		<script type="text/javascript">
 			CindyJS({

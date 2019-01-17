@@ -66,6 +66,8 @@ $\dot{y} = f(y), \quad y_0$ gegeben
 
 ---
 
+[final](3dgol_rungekutta.html)
+
 
 ---
 
@@ -73,4 +75,4 @@ Space
 
 ---
 
-<section data-background-iframe="../3dgol_rungekutta.html"></section>
+<section data-background-iframe="../3dgol_rungekutta.html" data-background-size="contain"></section>

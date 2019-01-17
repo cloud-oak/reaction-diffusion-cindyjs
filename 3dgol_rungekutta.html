@@ -9,6 +9,8 @@
 	</head>
 
 	<body>
+        <div class="flex row">
+        <div class="flex col">
 		<div id="CSCanvas" class="CindyJS-widget" style="position: relative; width: 512px; height: 512px;"></div>
 		<script id="csdraw" type="text/x-cindyscript">
 			// repeat(20, colorplot((0, 0), (statewidth, 0), "state", newstate(#)));
@@ -58,6 +60,7 @@
 			javascript("window.k = " + k);
 			javascript("window.f = " + f);
 			javascript("window.isoval = " + isoval);
+            javascript("postinitialize();");
 
 			target = [EXTENT,EXTENT,EXTENT]/2;
 			statewidth   = EXTENT * EXTENT;
@@ -295,82 +298,82 @@
 		<script id="csmousedown" type="text/x-cindyscript">
 			lastmouse = mouse();
 		</script>
-		<table>
+		<table id="buttons">
 			<tr>
 				<td><button type="button" onclick="init('point')">Init Point</button></td>
 				<td><button type="button" onclick="init('ball')">Init Ball</button></td>
 				<td><button type="button" onclick="init('full')">Init Full</button></td>
 			</tr>
 		</table>
-		<table>
+        </div>
+		<table id="sliders">
 			<tr>
-				<td id="isovalvalue">
-					isoval = 1.0
-				</td>
-				<td>
-					<input type="range" min="0.0" max="1.0" value="1.0" step="0.001" oninput="change('isoval', this.value)">
-				</td>
+				<th>iso</th>
+				<th>da</th>
+				<th>db</th>
+				<th>k</th>
+				<th>f</th>
 			</tr>
+            <tr>
+                <td id="isovalvalue"></td>
+                <td id="davalue"></td>
+                <td id="dbvalue"></td>
+                <td id="kvalue"></td>
+                <td id="fvalue"></td>
+            </td>
 			<tr>
-				<td id="davalue">
-					da = 0.10
+				<td>
+					<input type="range" id="isoslider" orient="vertical" min="0.0" max="1.0" value="1.0" step="0.001" oninput="change('isoval', this.value)">
 				</td>
 				<td>
-					<input type="range" min="0.0" max="0.5" value="0.10" step="0.001" oninput="change('da', this.value)">
-				</td>
-			</tr>
-			<tr>
-				<td id="dbvalue">
-					db = 0.04
+					<input type="range" id="daslider" orient="vertical" min="0.0" max="0.3" value="0.10" step="0.001" oninput="change('da', this.value)">
 				</td>
 				<td>
-					<input type="range" min="0.0" max="0.5" value="0.04" step="0.001" oninput="change('db', this.value)">
-				</td>
-			</tr>
-			<tr>
-				<td id="kvalue">
-					k = 0.06
+					<input type="range" id="dbslider" orient="vertical" min="0.0" max="0.3" value="0.04" step="0.001" oninput="change('db', this.value)">
 				</td>
 				<td>
-					<input type="range" min="0.0" max="0.5" value="0.06" step="0.001" oninput="change('k', this.value)">
-				</td>
-			</tr>
-			<tr>
-				<td id="fvalue">
-					f = 0.05
+					<input type="range" id="kslider" orient="vertical" min="0.05" max="0.09" value="0.06" step="0.001" oninput="change('k', this.value)">
 				</td>
 				<td>
-					<input type="range" min="0" max="0.5" value="0.05" step="0.001" oninput="change('f', this.value)">
+					<input type="range" id="fslider" orient="vertical" min="0.05" max="0.09" value="0.05" step="0.001" oninput="change('f', this.value)">
 				</td>
 			</tr>
 		</table>
+        </div>
 		<script type="text/javascript">
 			var cjs = CindyJS({
 				scripts: "cs*",
 				autoplay: true,
 				ports: [{
 					id: "CSCanvas",
-					// width: 700,
-					// height: 700,
 					transform: [{
 						visibleRect: [-1, 1, 1, -1]
 					}]
 				}]
 			});
 			function change(variable, val) {
-				statusstring = variable + " = " + Number.parseFloat(val).toFixed(3);
-				document.getElementById(variable + "value").innerHTML = statusstring;
-				cjs.evokeCS(statusstring);
+				numstring = Number.parseFloat(val).toFixed(3);
+				document.getElementById(variable + "value").innerHTML = numstring;
+				cjs.evokeCS(variable + "=" + numstring);
+
 			};
 			function init(type) {
 				command = "initialize" + type + "();";
 				cjs.evokeCS(command);
 			}
-			document.getElementById("davalue").value = window.da;
-			document.getElementById("dbvalue").value = window.db;
-			document.getElementById("kvalue").value  = window.k;
-			document.getElementById("fvalue").value  = window.f;
-			document.getElementById("isoval").value  = window.isoval;
+            function postinitialize() {
+                console.log("TAG " + window.da);
+                document.getElementById("daslider").value = window.da;
+                document.getElementById("dbslider").value = window.db;
+                document.getElementById("kslider").value  = window.k;
+                document.getElementById("fslider").value  = window.f;
+                document.getElementById("isoslider").value  = window.isoval;
+                change("da", window.da);
+                change("db", window.db);
+                change("isoval", window.isoval);
+                change("k", window.k);
+                change("f", window.f);
+            }
 		</script>
 	</body>
 </html>

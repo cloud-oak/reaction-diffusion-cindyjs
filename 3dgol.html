@@ -5,18 +5,19 @@
 		<script type="text/javascript" src="https://cindyjs.org/dist/snapshot/Cindy.js"></script>
 		<script type="text/javascript" src="https://cindyjs.org/dist/snapshot/CindyGL.js"></script>
 		<title>3dgol</title>
+   	<link rel="stylesheet" type="text/css" href="theme.css">
 	</head>
 
-	<body style="background:#000;">
+	<body>
 		<div id="CSCanvas" class="CindyJS-widget" style="position: relative; width: 512px; height: 512px;"></div>
 		<script id="csdraw" type="text/x-cindyscript">
-			//colorplot((0, 0), (statewidth, 0), "state", newstate(#));
+			repeat(20, colorplot((0, 0), (statewidth, 0), "state", newstate(#)));
 
 			// Ab hier: 3D
 			origin = zoom * EXTENT * [
-				cos(lambda)*cos(phi),
+				cos(lambda+0.2*seconds())*cos(phi),
 				sin(phi),
-				sin(lambda)*cos(phi)
+				sin(lambda+0.2*seconds())*cos(phi)
 			] + target;
 			mdir = (target-origin)/|(target-origin)|;
 			v = cross([0,1,0], mdir);
@@ -25,13 +26,19 @@
 			w = w/|w|;
 			colorplot(
 				dir = mdir + #.x*v + #.y*w;
-				raytrace()
+				if(#.x < 0.5 % #.y < 0.50,
+					raytrace()
+				,
+					p = EXTENT * 2 * (# - [0.5, 0.5]);
+					val = voxelAt((p.x, p.y, 64));
+					2 * val * [0.2, 0.5, 1];
+				)
 			);
-
+			
 			t = mod(t + 1, EXTENT);
 		</script>
 		<script id="csinit" type="text/x-cindyscript">
-			EXTENT = 64; // Extent of the cube for each dimension
+			EXTENT = 128; // Extent of the cube for each dimension
 
 			target = [EXTENT,EXTENT,EXTENT]/2;
 			statewidth   = EXTENT * EXTENT;
@@ -68,6 +75,9 @@
 				if(p.x<0, p.x = p.x + EXTENT, if(p.x>=EXTENT, p.x = p.x - EXTENT));
 				if(p.y<0, p.y = p.y + EXTENT, if(p.y>=EXTENT, p.y = p.y - EXTENT));
 				if(p.z<0, p.z = p.z + EXTENT, if(p.z>=EXTENT, p.z = p.z - EXTENT));
+				// if(p.x<0, p.x = 0, if(p.x>=EXTENT, p.x = EXTENT - 1));
+				// if(p.y<0, p.y = 0, if(p.y>=EXTENT, p.y = EXTENT - 1));
+				// if(p.z<0, p.z = 0, if(p.z>=EXTENT, p.z = EXTENT - 1));
 				imagergb((0, 0), (statewidth, 0), "state",
 					(floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
 					floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
@@ -75,24 +85,36 @@
 				)
 			);
 
-			da = 0.05;
-			db = 0.02;
-			k = 0.06;
-			f = 0.05;
-			// da = 0.2;
-			// db = 0.1;
-			// k = 0.06;
-			// f = 0.035;
+			da = 0.10;
+			db = 0.04;
+			k  = 0.06;
+			f  = 0.05;
 
 			// initialize cube
-			colorplot((0, 0), (statewidth, 0), "state", 
-				pt = spacepoint(#);
-				if(|pt - target| <= 16,
-					[1, 1, 0],
-					[0, 0, 0]
-				)
+			initializeball() := (
+				colorplot((0, 0), (statewidth, 0), "state", 
+					pt = spacepoint(#);
+					if(|pt - target| <= 16,
+						[random(), random(), 0],
+						[0, 0, 0]
+					)
+				);
 			);
-
+			initializepoint() := (
+				colorplot((0, 0), (statewidth, 0), "state", 
+					pt = spacepoint(#);
+					if(|pt - target| <= 4,
+						[random(), random(), 0],
+						[0, 0, 0]
+					)
+				);
+			);
+			initializefull() := (
+				colorplot((0, 0), (statewidth, 0), "state", 
+					[random(), random(), 0]
+				);
+			);
+			initializeball();
 			deltas = [(-1,0,0), (1,0,0), (0,-1,0), (0,1,0), (0,0,-1), (0,0,1)];
 			newstate(hash) := (
 				pt = spacepoint(hash);
@@ -100,17 +122,23 @@
 				laplacian = -6 * val + sum(apply(deltas, d, get(pt + d)));
 				deltax = da * laplacian.x - val.x * val.y * val.y + f * (1-val.x);
 				deltay = db * laplacian.y + val.x * val.y * val.y - (k+f) * val.y;
-				(val.x + deltax, val.y + deltay, 0)
+				(val.x + 0.5*deltax, val.y + 0.5*deltay, 0)
 			);
 			ray(t) := origin + t * dir;
 			raytrace()  := (
-				c = 0;
+				totalcolor = [0,0,0];
+				totalalpha = 0;
 				stepsize = zoom * EXTENT * 1.73205080757 / 512;
 				repeat(512,
-					c = c + voxelAt(ray(# * stepsize));
+					val = voxelAt(ray(# * stepsize));
+					alpha = 1.5*max(0,val-0.05)^4;
+					totalalpha = totalalpha + alpha;
+					// if(totalalpha <= 1,
+						color = [0.2,0.5,1]; //[val, val^2, val^3];
+						totalcolor = totalcolor + alpha * color;
+					// );
 				);
-				c = c / 64;
-				[c, c^2, c^3]
+				totalcolor
 			);
 		</script>
 		<script id="csmousedrag" type="text/x-cindyscript">
@@ -122,11 +150,8 @@
 		<script id="csmousedown" type="text/x-cindyscript">
 			lastmouse = mouse();
 		</script>
-		<script id="cskeydown" type="text/x-cindyscript">
-			if(keycode()==32, repeat(10, colorplot((0, 0), (statewidth, 0), "state", newstate(#))));
-		</script>
 		<script type="text/javascript">
-			CindyJS({
+			var cjs = CindyJS({
 				scripts: "cs*",
 				autoplay: true,
 				ports: [{
@@ -138,6 +163,57 @@
 					}]
 				}]
 			});
+			function change(variable, val) {
+				statusstring = variable + " = " + val;
+				document.getElementById(variable + "value").innerHTML = statusstring;
+				cjs.evokeCS(statusstring);
+			};
+			function init(type) {
+				command = "initialize" + type + "();";
+				cjs.evokeCS(command);
+			}
 		</script>
+		<table>
+			<tr>
+				<td><button type="button" onclick="init('point')">Init Point</button></td>
+				<td><button type="button" onclick="init('ball')">Init Ball</button></td>
+				<td><button type="button" onclick="init('full')">Init Full</button></td>
+			</tr>
+		</table>
+		<table>
+			<tr>
+				<td id="davalue">
+					da = 0.10
+				</td>
+				<td>
+					<input type="range" min="0.0" max="0.5" value="0.10" step="0.001" oninput="change('da', this.value)">
+				</td>
+			</tr>
+			<tr>
+				<td id="dbvalue">
+					db = 0.04
+				</td>
+				<td>
+					<input type="range" min="0.0" max="0.5" value="0.04" step="0.001" oninput="change('db', this.value)">
+				</td>
+			</tr>
+			<tr>
+				<td id="kvalue">
+					k = 0.06
+				</td>
+				<td>
+					<input type="range" min="0.0" max="0.5" value="0.06" step="0.001" oninput="change('k', this.value)">
+				</td>
+			</tr>
+			<tr>
+				<td id="fvalue">
+					f = 0.05
+				</td>
+				<td>
+					<input type="range" min="0" max="0.5" value="0.05" step="0.001" oninput="change('f', this.value)">
+				</td>
+			</tr>
+		</table>
+		<script type="text/javascript"
 	</body>
 </html>

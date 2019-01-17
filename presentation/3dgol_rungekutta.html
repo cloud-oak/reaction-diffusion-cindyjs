@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<script type="text/javascript" src="https://cindyjs.org/dist/snapshot/Cindy.js"></script>
+		<script type="text/javascript" src="https://cindyjs.org/dist/snapshot/CindyGL.js"></script>
+		<title>3dgol</title>
+   	<link rel="stylesheet" type="text/css" href="theme.css">
+	</head>
+
+	<body>
+		<div id="CSCanvas" class="CindyJS-widget" style="position: relative; width: 512px; height: 512px;"></div>
+		<script id="csdraw" type="text/x-cindyscript">
+			// repeat(20, colorplot((0, 0), (statewidth, 0), "state", newstate(#)));
+			repeat(3, update());
+
+			// Ab hier: 3D
+			origin = zoom * EXTENT * [
+				cos(lambda+0.2*seconds())*cos(phi),
+				sin(phi),
+				sin(lambda+0.2*seconds())*cos(phi)
+			] + target;
+			mdir = (target-origin)/|(target-origin)|;
+			v = cross([0,1,0], mdir);
+			w = cross(mdir, v);
+			v = v/|v|;
+			w = w/|w|;
+			lightdir = [
+				cos(1.5 + lambda+0.2*seconds())*cos(phi / 2),
+				sin(phi / 2),
+				sin(1.5 + lambda+0.2*seconds())*cos(phi / 2)
+			];
+			// lightdir = lightdir / |lightdir|
+			colorplot(
+				if(#.x < 0.5 % #.y < 0.50,
+					dir = mdir + #.x*v + #.y*w;
+					raytrace()
+				,
+					p = EXTENT * 2 * (# - [0.5, 0.5]);
+					val = voxelAt((p.x, p.y, EXTENT / 2));
+					2 * val * [0.2, 0.5, 1];
+				)
+			);
+			t = mod(t + 1, EXTENT);
+		</script>
+		<script id="csinit" type="text/x-cindyscript">
+			EXTENT = 64; // Extent of the cube for each dimension
+			DELTA = 1; // Step size
+			isoval = 1.0; // ISO Surface cutoff
+
+			da = 0.10;
+			db = 0.04;
+			k  = 0.06;
+			f  = 0.05;
+
+			javascript("window.da = " + da);
+			javascript("window.db = " + db);
+			javascript("window.k = " + k);
+			javascript("window.f = " + f);
+			javascript("window.isoval = " + isoval);
+
+			target = [EXTENT,EXTENT,EXTENT]/2;
+			statewidth   = EXTENT * EXTENT;
+			stateheight  = EXTENT;
+			while(statewidth > 2 * stateheight,
+				statewidth  = statewidth / 2;
+				stateheight = stateheight * 2;
+			);
+			TILESX = statewidth / EXTENT;
+			TILESY = stateheight / EXTENT;
+			print(statewidth + " x " + stateheight);
+			lambda = pi / 6;
+			phi = pi / 8;
+			zoom = 0.9;
+			createimage("state", statewidth, stateheight);
+			createimage("tmp", statewidth, stateheight);
+			
+			spacepoint(t) := (
+				mod(t.x, EXTENT),
+				mod(t.y, EXTENT),
+				floor(t.x / EXTENT) + TILESX * floor(t.y / EXTENT)
+			);
+			voxelAt(p) := (
+				if(p.x<0 % p.y < 0 % p.z < 0 % p.x >= EXTENT % p.y >= EXTENT % p.z >= EXTENT,
+					0
+				,
+					imagergb((0, 0), (statewidth, 0), "state",
+						(floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
+						floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
+						interpolate->false, repeat->false
+					).g
+				)
+			);
+
+			valAt(p) := (
+				if(p.x<0 % p.y < 0 % p.z < 0 % p.x >= EXTENT % p.y >= EXTENT % p.z >= EXTENT,
+					0
+				,
+					lz = p.z - floor(p.z);
+					
+					(1-lz) * imagergb((0, 0), (statewidth, 0), "state", (
+						p.x + EXTENT * mod(floor(p.z), TILESX),
+						p.y + EXTENT * floor(floor(p.z) / TILESX)
+					), interpolate->true, repeat->false).g +
+					lz *  imagergb((0, 0), (statewidth, 0), "state", (
+						p.x + EXTENT * mod(ceil(p.z), TILESX),
+						p.y + EXTENT * floor(ceil(p.z) / TILESX)
+					), interpolate->true, repeat->false).g
+				)
+			);
+
+			get(p) := (
+                // XXX Repeating
+				// if(p.x<0, p.x = p.x + EXTENT, if(p.x>=EXTENT, p.x = p.x - EXTENT));
+				// if(p.y<0, p.y = p.y + EXTENT, if(p.y>=EXTENT, p.y = p.y - EXTENT));
+				// if(p.z<0, p.z = p.z + EXTENT, if(p.z>=EXTENT, p.z = p.z - EXTENT));
+                // XXX Zero Boundary
+				if(p.x<0 % p.x>=EXTENT %
+				   p.y<0 % p.y>=EXTENT %
+				   p.z<0 % p.z>=EXTENT,
+                    (0, 0, 0, 0)
+                ,
+                    imagergba((0, 0), (statewidth, 0), "state",
+                        (floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
+                        floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
+                        interpolate->false, repeat->false
+                    )
+                )
+			);
+
+			gettmp(p) := (
+                /// XXX Repeating
+				// if(p.x<0, p.x = p.x + EXTENT, if(p.x>=EXTENT, p.x = p.x - EXTENT));
+				// if(p.y<0, p.y = p.y + EXTENT, if(p.y>=EXTENT, p.y = p.y - EXTENT));
+				// if(p.z<0, p.z = p.z + EXTENT, if(p.z>=EXTENT, p.z = p.z - EXTENT));
+                // XXX Zero Boundary
+				if(p.x<0 % p.x>=EXTENT %
+				   p.y<0 % p.y>=EXTENT %
+				   p.z<0 % p.z>=EXTENT,
+                    (0, 0, 0, 0)
+                ,
+                    imagergba((0, 0), (statewidth, 0), "tmp",
+                        (floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
+                        floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
+                        interpolate->false, repeat->false
+                    )
+                )
+			);
+
+			// initialize
+			initializeball() := colorplot((0, 0), (statewidth, 0), "state", 
+					dist = |spacepoint(#) - target| / (2 * EXTENT);
+					scale = 0.1 * exp(- |5*dist|^4 );
+					[
+						scale * (4 + random()),
+						scale * (4 + random()),
+						0
+					]
+			);
+			initializepoint() := (
+				colorplot((0, 0), (statewidth, 0), "state", 
+					pt = spacepoint(#);
+					if(|pt - target| <= 4,
+						[random(), random(), 0],
+						[0, 0, 0]
+					)
+				);
+			);
+			initializefull() := (
+				colorplot((0, 0), (statewidth, 0), "state", 
+					[random(), random(), 0]
+				);
+			);
+			initializeball();
+			deltas = [(-1,0,0), (1,0,0), (0,-1,0), (0,1,0), (0,0,-1), (0,0,1)];
+			newstate(hash) := (
+				pt = spacepoint(hash);
+				val = get(pt);
+				laplacian = -6 * val + sum(apply(deltas, d, get(pt + d)));
+				deltax = da * laplacian.x - val.x * val.y * val.y + f * (1-val.x);
+				deltay = db * laplacian.y + val.x * val.y * val.y - (k+f) * val.y;
+				(val.x + 0.5*deltax, val.y + 0.5*deltay, 0)
+			);
+
+			update() := (
+				// First Step:
+				// 	state <- (y + k1/2, k1)
+				// 	tmp   <- (y, 1/6 k1)
+				colorplot((0, 0), (statewidth, 0), "state",
+					pt = spacepoint(#);
+					y  = get(pt);
+					laplacian = -6 * y + sum(apply(deltas, d, get(pt + d)));
+					k11 = da * laplacian_1 - y_1 * y_2 * y_2 + f * (1-y_1);
+					k12 = db * laplacian_2 + y_1 * y_2 * y_2 - (k+f) * y_2;
+					(y_1 + k11 * DELTA / 2, y_2 + k12 * DELTA / 2, k11, k12)
+				);
+				colorplot((0, 0), (statewidth, 0), "tmp",
+					val = get(spacepoint(#));
+					(val_1 - val_3 * DELTA / 2, val_2 - val_4 * DELTA / 2, val_3 * DELTA / 6, val_4 * DELTA / 6)
+				);
+				// Second Step:
+				// 	state <- (y + k2/2, k2)
+				// 	tmp   <- (y, 1/6 * (k1 + 2k2)
+				colorplot((0, 0), (statewidth, 0), "state",
+					pt = spacepoint(#);
+					y  = get(pt);
+					laplacian = -6 * y + sum(apply(deltas, d, get(pt + d)));
+					k21 = da * laplacian_1 - y_1 * y_2 * y_2 + f * (1-y_1);
+					k22 = db * laplacian_2 + y_1 * y_2 * y_2 - (k+f) * y_2;
+					(y_1 + k21 * DELTA / 2, y_2 + k22 * DELTA / 2, k21, k22)
+				);
+				colorplot((0, 0), (statewidth, 0), "tmp",
+					pt = spacepoint(#);
+					val = get(pt);
+					tmp = gettmp(pt);
+					(val_1 - val_3 * DELTA / 2, val_2 - val_4 * DELTA / 2, tmp_3 + val_3 * DELTA / 3, tmp_4 + val_4 * DELTA / 3)
+				);
+				// Third Step:
+				// 	state = (y + k3, k3)
+				// 	tmp   = (y + 1/6 * (k1 + 2k3 + 2k3 + k4)
+				colorplot((0, 0), (statewidth, 0), "state",
+					pt = spacepoint(#);
+					y  = get(pt);
+					laplacian = -6 * y + sum(apply(deltas, d, get(pt + d)));
+					k31 = da * laplacian_1 - y_1 * y_2 * y_2 + f * (1-y_1);
+					k32 = db * laplacian_2 + y_1 * y_2 * y_2 - (k+f) * y_2;
+					(y_1 + DELTA * k31, y_2 + DELTA * k32, k31, k32)
+				);
+				colorplot((0, 0), (statewidth, 0), "tmp",
+					pt = spacepoint(#);
+					y = get(pt);
+					tmp = gettmp(pt);
+					
+					laplacian = -6 * y + sum(apply(deltas, d, get(pt + d)));
+					k41 = da * laplacian_1 - y_1 * y_2 * y_2 + f * (1-y_1);
+					k42 = db * laplacian_2 + y_1 * y_2 * y_2 - (k+f) * y_2;
+					
+					(tmp_1 + tmp_3 + y_3 * DELTA / 3 + k41 * DELTA / 6, tmp_2 + tmp_4 + y_4 * DELTA / 3 + k42 * DELTA / 6, 0, 0)
+				);
+				colorplot((0, 0), (statewidth, 0), "state",
+					pt = spacepoint(#);
+					gettmp(pt)
+				)
+			);
+
+			ray(t) := origin + t * dir;
+
+			lightdir    = -[1,1,1]; lightdir = lightdir / |lightdir|;
+			ambient     = [0.1, 0.2, 0.2];
+			directional = [0.2, 0.3, 0.5];
+			specular    = [1.0, 1.0, 1.0];
+			volume      = [0.2, 0.5, 1.0];
+
+			raytrace()  := (
+				totalcolor = [0,0,0];
+				// totalalpha = 0;
+				stepsize = zoom * EXTENT * 1.73205080757 / 512;
+				flying = true;
+
+				repeat(512,
+					if(flying,
+						pos = ray(# * stepsize);
+						val = valAt(pos);
+						if(val > isoval,
+							flying = false;
+							normal = [
+								valAt(pos+[1,0,0]) - valAt(pos-[1,0,0]),
+								valAt(pos+[0,1,0]) - valAt(pos-[0,1,0]),
+								valAt(pos+[0,0,1]) - valAt(pos-[0,0,1])
+							];
+							normal = normal / |normal|;
+							eye = (origin - pos) / |pos - origin|;
+							totalcolor = totalcolor +
+								ambient + 
+								directional * (lightdir * normal) +
+								specular * (lightdir * (eye - 2 * normal * (normal * eye)))^3;
+						,
+							alpha = 1.5*max(0,val-0.05)^4;
+							// totalalpha = totalalpha + alpha;
+							// if(totalalpha <= 1,
+							totalcolor = totalcolor + alpha * volume;
+							// );
+						);
+					)
+				);
+				totalcolor
+			);
+		</script>
+		<script id="csmousedrag" type="text/x-cindyscript">
+			d = mouse()-lastmouse;
+			lambda = lambda-d.x;
+			phi = phi-d.y;
+			lastmouse = mouse();
+		</script>
+		<script id="csmousedown" type="text/x-cindyscript">
+			lastmouse = mouse();
+		</script>
+		<table>
+			<tr>
+				<td><button type="button" onclick="init('point')">Init Point</button></td>
+				<td><button type="button" onclick="init('ball')">Init Ball</button></td>
+				<td><button type="button" onclick="init('full')">Init Full</button></td>
+			</tr>
+		</table>
+		<table>
+			<tr>
+				<td id="isovalvalue">
+					isoval = 1.0
+				</td>
+				<td>
+					<input type="range" min="0.0" max="1.0" value="1.0" step="0.001" oninput="change('isoval', this.value)">
+				</td>
+			</tr>
+			<tr>
+				<td id="davalue">
+					da = 0.10
+				</td>
+				<td>
+					<input type="range" min="0.0" max="0.5" value="0.10" step="0.001" oninput="change('da', this.value)">
+				</td>
+			</tr>
+			<tr>
+				<td id="dbvalue">
+					db = 0.04
+				</td>
+				<td>
+					<input type="range" min="0.0" max="0.5" value="0.04" step="0.001" oninput="change('db', this.value)">
+				</td>
+			</tr>
+			<tr>
+				<td id="kvalue">
+					k = 0.06
+				</td>
+				<td>
+					<input type="range" min="0.0" max="0.5" value="0.06" step="0.001" oninput="change('k', this.value)">
+				</td>
+			</tr>
+			<tr>
+				<td id="fvalue">
+					f = 0.05
+				</td>
+				<td>
+					<input type="range" min="0" max="0.5" value="0.05" step="0.001" oninput="change('f', this.value)">
+				</td>
+			</tr>
+		</table>
+		<script type="text/javascript">
+			var cjs = CindyJS({
+				scripts: "cs*",
+				autoplay: true,
+				ports: [{
+					id: "CSCanvas",
+					// width: 700,
+					// height: 700,
+					transform: [{
+						visibleRect: [-1, 1, 1, -1]
+					}]
+				}]
+			});
+			function change(variable, val) {
+				statusstring = variable + " = " + Number.parseFloat(val).toFixed(3);
+				document.getElementById(variable + "value").innerHTML = statusstring;
+				cjs.evokeCS(statusstring);
+			};
+			function init(type) {
+				command = "initialize" + type + "();";
+				cjs.evokeCS(command);
+			}
+			document.getElementById("davalue").value = window.da;
+			document.getElementById("dbvalue").value = window.db;
+			document.getElementById("kvalue").value  = window.k;
+			document.getElementById("fvalue").value  = window.f;
+			document.getElementById("isoval").value  = window.isoval;
+		</script>
+	</body>
+</html>

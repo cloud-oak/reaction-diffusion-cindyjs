@@ -1,0 +1,40 @@
+Digraph calc {
+    // layout=neato;
+    rankdir=LR;
+    // node [nodesep=.1,ranksep=0.1,shape="rect"];
+    node [shape="rect"];
+    y [label="yₙ"];
+    k1 [label="k₁"];
+    k2 [label="k₂"];
+    k3 [label="k₃"];
+    k4 [label="k₄"];
+
+    // ½
+    ypk1 [label="yₙ + ½ k₁"];
+    ypk2 [label="yₙ + ½ k₂"];
+    ypk3 [label="yₙ + k₃"];
+    // ypk4 [label="yₙ + k₄"];
+    ynp1 [label="yₙ₊₁"];
+
+    edge [color="red"];
+    y -> k1;
+    ypk1 -> k2;
+    ypk2 -> k3;
+    ypk3 -> k4;
+
+    node [width=0.01,height=0.01,shape="point"];
+    a1;
+    a2;
+    a3;
+    // a4;
+    // a5;
+    a6;
+
+    edge [color="black"];
+    {y,k1} -> a1 [dir=none]; a1 -> ypk1;
+    {y,k2} -> a2 [dir=none]; a2 -> ypk2;
+    {y,k3} -> a3 [dir=none]; a3 -> ypk3;
+
+    {y,k1,k2,k3,k4} -> a6 [dir=none];
+    a6 -> ynp1;
+}

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        
+        <title>Exported from https://cindyjs.org/editor/</title>
+        <style type="text/css">
+            body {
+                margin: 0px;
+                padding: 0px;
+            }
+            
+            #CSCanvas {
+                width: 100vw; height: 100vh;
+            }
+			 /* The switch - the box around the slider */
+			.switch {
+			  position: relative;
+			  display: inline-block;
+			  width: 60px;
+			  height: 34px;
+			}
+
+			/* Hide default HTML checkbox */
+			.switch input {
+			  opacity: 0;
+			  width: 0;
+			  height: 0;
+			}
+
+			/* The slider */
+			.slider {
+			  position: absolute;
+			  cursor: pointer;
+			  top: 0;
+			  left: 0;
+			  right: 0;
+			  bottom: 0;
+			  background-color: #ccc;
+			  -webkit-transition: .4s;
+			  transition: .4s;
+			}
+
+			.slider:before {
+			  position: absolute;
+			  content: "";
+			  height: 26px;
+			  width: 26px;
+			  left: 4px;
+			  bottom: 4px;
+			  background-color: white;
+			  -webkit-transition: .4s;
+			  transition: .4s;
+			}
+
+			input:checked + .slider {
+			  background-color: #2196F3;
+			}
+
+			input:focus + .slider {
+			  box-shadow: 0 0 1px #2196F3;
+			}
+
+			input:checked + .slider:before {
+			  -webkit-transform: translateX(26px);
+			  -ms-transform: translateX(26px);
+			  transform: translateX(26px);
+			}
+
+			/* Rounded sliders */
+			.slider.round {
+			  border-radius: 34px;
+			}
+
+			.slider.round:before {
+			  border-radius: 50%;
+			} 
+
+			.sliderlabel {
+				font-family: sans;
+				vertical-align: sub;
+			}
+        </style>
+        <link rel="stylesheet" href="https://cindyjs.org/dist/latest/CindyJS.css">
+        <script type="text/javascript" src="https://cindyjs.org/dist/latest/Cindy.js"></script>
+        <script type="text/javascript" src="https://cindyjs.org/dist/latest/CindyGL.js"></script>
+      <script id="csinit" type="text/x-cindyscript">
+      H = 0.2;
+		enablee = false;
+		enabler = false;
+		enables = false;
+        STEPS = 36;
+
+        errc(h);
+
+        mat = [[0, 1], [-1, 0]];
+
+        f(x) := mat * x;
+
+        euler(pt, h) := pt + h * f(pt);
+
+        rungekutta(pt, h) := (
+          k1 = 4 * h * f(pt);
+          k2 = 4 * h * f(pt + k1 / 2);
+          k3 = 4 * h * f(pt + k2 / 2);
+          k4 = 4 * h * f(pt + k3);
+          if(enables,
+              draw(pt+k1/2, color->[0.5,0,0], size->2);
+              draw(pt+k2/2, color->[0.5,0,0], size->2);
+              draw(pt+k3  , color->[0.5,0,0], size->2);
+          );
+          pt + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+        );
+        randompoint() := (
+            r = 2 * sqrt(random());
+            theta = random() * 2 * pi;
+            (r * cos(theta), r * sin(theta));
+        );
+        snakes = apply(1..200,
+            randompoint()
+        );
+      </script>
+      <script id="csdraw" type="text/x-cindyscript">
+
+        snakes = apply(snakes,
+            //if(random() < 0.001,
+            //    tmp = randompoint()
+            //,
+                tmp = #;
+            //);
+            newtmp = euler(tmp, 0.003);
+            draw(newtmp - 30 * (newtmp - tmp), newtmp, arrow->true, arrowsize->0.5, color->[0.3,0.3,0.3]);
+            newtmp
+        );
+
+        pt = A.xy;
+        e = pt;
+        r = pt;
+        if(enablee,
+        repeat(STEPS,
+          olde = e;
+          e = euler(e, H);
+          draw(olde, e);
+          draw(e, color->[0,0,1], size->2);
+        );
+        );
+
+        if(enabler,
+        repeat(STEPS / 4,
+          oldr = r;
+          r = rungekutta(r, H);
+          draw(oldr, r, color->[1,0,0]);
+          draw(r, color->[1,0,0], size->2);
+        )
+        )
+      </script>
+    
+        <script type="text/javascript">
+          var cdy = CindyJS({
+            scripts: "cs*",
+            angleUnit: "°",
+            exclusive: false,
+            geometry: [
+              {color: [0.3144, 1, 0.3554], labeled: false, name: "A", type: "Free", pos: [0.29127286585365815, 0.187550813008133, 1]},
+              {color: [0.7415, 0.7415, 0.7415], labeled: false, name: "B", size: 4.78, pinned: true, type: "Free", pos: [0, 0, 1]},
+              {color: [1.0592857142857144, 1.0592857142857144, 1.0592857142857144], labeled: false, name: "C", pinned: true, visible: false, size: 4.78, type: "Free", pos: [0, 1, 1]},
+              {color: [1.0592857142857144, 1.0592857142857144, 1.0592857142857144], labeled: false, name: "D", pinned: true, visible: false, size: 4.78, type: "Free", pos: [1, 0, 1]},
+              {args: ["B", "C"], labeled: true, name: "a", type: "Join", color: [0.3, 0.3, 0.3]},
+              {args: ["B", "D"], labeled: true, name: "b", type: "Join", color: [0.3, 0.3, 0.3]}
+            ],
+            ports: [
+              {id: "CSCanvas", transform: [{visibleRect: [-1.5083, -1.4622, 1.4122, 1.5]}], background: "rgb(255,255,255)"}
+            ],
+            csconsole: false,
+            use: [
+              "CindyGL"
+            ],
+            autoplay: true,
+            behavior: [
+
+            ]
+          });
+			var toggleeuler = function() {cdy.evokeCS("enablee = !enablee;")}
+			var togglerk = function() {cdy.evokeCS("enabler = !enabler;")}
+			var togglerksp = function() {cdy.evokeCS("enables = !enables;")}
+        </script>
+    </head>
+    <body>
+        <div id="CSCanvas"></div>
+		  <div style="position: absolute;top:10px;left:10px;">
+			<label class="switch">
+			  <input type="checkbox" onchange="toggleeuler()">
+			  <span class="slider round"></span>
+			</label> 
+			<span class="sliderlabel">Euler</span>
+			<br>
+			<br>
+			<label class="switch">
+			  <input type="checkbox" onchange="togglerk()">
+			  <span class="slider round"></span>
+			</label> 
+			<span class="sliderlabel">Runge-Kutta</span>
+			<br>
+			<br>
+			<label class="switch">
+			  <input type="checkbox" onchange="togglerksp()">
+			  <span class="slider round"></span>
+			</label> 
+			<span class="sliderlabel">Runge-Kutta sampling points</span>
+		</div>
+    </body>
+    </html>
+  

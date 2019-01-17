@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <script type="text/javascript" src="static/Cindy.js"></script>
+    <script type="text/javascript" src="static/CindyGL.js"></script>
+    <title>Reaction diffusion</title>
+  <style type="text/css">
+    body {
+         margin: 0px;
+         padding: 0px;
+    }
+    
+    #CSCanvas {
+         width: 100vw; height: 100vh;
+    }
+  </style>
+  </head>
+
+  <body>
+    <div id="CSCanvas" class="CindyJS-widget" style="position: absolute; width: 100vw; height: 100vh;"></div>
+    
+    <script id="csinit" type="text/x-cindyscript">
+      createimage("state", 512, 512);
+
+      get(x, y) :=  (
+		  imagergb("state", (x,y), repeat->true, interpolate->false).r
+        );
+      
+      initialimage(x) := 1;
+      colorplot("state", initialimage(#)); 
+      
+      kernel = [[0.05, 0.2, 0.05],
+                 [0.2, -1, 0.2],
+                 [0.05, 0.2, 0.05]];
+
+      computelaplacian(x, y) := (
+        sum( apply(-1..1, dy,
+            sum( apply(-1..1, dx,
+                kernel_(dy+2)_(dx+2)*get(x+dx, y+dy)
+            ))
+          ))
+      );
+      
+      newstate(x, y) := (
+        laplacian = computelaplacian(x, y);
+        q = get(x,y);
+        q + laplacian
+      );
+    </script>
+    
+    <script id="csmousedown" type="text/x-cindyscript">
+      colorplot("state", min(get(#_1,#_2), |# - mouse()|^2/100));
+    </script>
+    
+    <script id="csdraw" type="text/x-cindyscript">
+      repeat(4,
+        colorplot("state", newstate(#.x, #.y));
+      );
+      colorplot(
+        q = get(#.x, #.y);
+	    q
+      )
+		// drawimage((0,0), (512, 0), "state");
+    </script>
+
+    <script type="text/javascript">
+    CindyJS({
+      scripts: "cs*",
+      autoplay: true,
+		exclusive: false,
+      ports: [{
+        id: "CSCanvas",
+        transform: [{
+          visibleRect: [0, 256, 512, 0]
+        }],
+      }]
+    });
+    </script>
+	</body>
+</html>

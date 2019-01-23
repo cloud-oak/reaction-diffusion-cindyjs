@@ -1,55 +1,153 @@
 <!doctype html>
 <html>
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-		<title>Reaktions-Diffusionsgleichungen</title>
+    <title>Reaktions-Diffusionsgleichungen</title>
 
-		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/white.css">
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/white.css">
 
-		<!-- Theme used for syntax highlighting of code -->
-		<link rel="stylesheet" href="lib/css/zenburn.css">
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
 
-		<!-- Printing and PDF exports -->
-		<script>
-			var link = document.createElement( 'link' );
-			link.rel = 'stylesheet';
-			link.type = 'text/css';
-			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
-			document.getElementsByTagName( 'head' )[0].appendChild( link );
-		</script>
-	</head>
-	<body>
-		<div class="reveal">
-			<div class="slides">
-				<section data-markdown="pres.md"
-							data-charset="utf-8">
-				</section>
-			</div>
-		</div>
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+    <style>
+      .reveal section img {
+        background:none; border:none; box-shadow:none;
+        vertical-align: middle;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <!-- <section data-markdown="pres.md"
+              data-charset="utf-8" data-separator-notes="^Note:">
+        </section> -->
+        <section>
+          <h2>Reaction-Diffusion Systems<h2>
+        </section>
+        <section>
+          <h3>Hauptziel</h3>
+          Kontinuierliches System simulieren, um Volume Rendering auszureizen
+        </section>
+        <section data-background-iframe="applets/diffusion.html">
+          <h3>Diffusion</h3>
+            Differentalgleichung
+            $$\dot y = d \cdot \nabla^2 y $$
+          <aside class="notes">"Heat Equation"</aside>
+        </section>
+        <section>
+          <h3>Reaction-Diffusion</h3>
+          Zwei Diffusions-Komponenten mit Interaktionsterm
+          <div class="fragment">
+            <h6>Gray-Scott Modell</h6>
+            $$\partial_t a = d_a \nabla^2 a - ab^2 + f (1 - a)$$
+            $$\partial_t b = d_b \nabla^2 b + ab^2 - (f + k) b$$
+            <iframe width="540px" height="280px" data-src="applets/reactiondiffusion.html"></iframe>
+          </div>
+          <aside class="notes" data-markdown>
+            <script type="text/template">
+              + Zwei Komponenten A, B
+              + Interaktionsterm simuliert chemische Reaktion
+                + A + 2B -> 3B
+                + B -> (Abfall)
+              + *Klick*
+              + Laplace-Operator einzige räumliche Komponente
+                + Laplace-Operator in 3D Schlüssel zum Erfolg
+            </script>
+          </aside>
+        </section>
+        <section>
+          <h2>Diskreter Laplace Operator</h2>
+          <ul>
+            <li class="fragment"><b>2D:</b> Konvolution mit 
+              $\begin{pmatrix}0&1&0\\1&-4&1\\0&1&0\end{pmatrix}$
+            </li>
+            <li class="fragment"><b>3D:</b> Konvolution mit <img src="/static/3dlaplace.svg"></img></li>
+          </ul>
+          <aside class="notes" data-markdown>
+            <script type="text/template">
+              + Numerisch bessere Approximationen möglich
+              + Deutlich mehr Rechenleistung (3D: 7 Texels vs 27)
+            </script>
+          </aside>
+        </section>
+        <section>
+          <h3>Euler-Methode</h3>
+          <ul>
+            <li class="fragment">$\dot{y} = f(y)$</li>
+            <li class="fragment">$y_0$ gegeben</li>
+            <li class="fragment"><b>Iteration:</b> $y_{n+1} = y_n + h \cdot f(y_n)$</li>
+          </ul>
+        </section>
+        <section data-background-iframe="applets/reactdiff-euler.html" data-background-size="contain"></section>
+        <section>
+          <h3>Euler explodiert numerisch!</h3>
+        </section>
+        <section data-background-iframe="applets/integrationmethods.html">
+          <div style="position:absolute;padding-bottom:200px;left:10px;">
+            $\dot{y} = \begin{pmatrix}0&1\\ -1&0\end{pmatrix}y$
+          </div>
+        </section>
+        <section>
+          <h3>Runge-Kutta</h3>
+          <ul>
+            <li class="fragment">$\dot{y} = f(y), \quad y_0$ gegeben</li>
+            <li class="fragment">$k_1 = f(y_n)$</li>
+            <li class="fragment">$k_2 = f(y_n + \frac{h}{2} k_1)$</li>
+            <li class="fragment">$k_3 = f(y_n + \frac{h}{2} k_2)$</li>
+            <li class="fragment">$k_4 = f(y_n + h k_3)$</li>
+            <li class="fragment">$y_{n+1} = y_n + \frac{h}{6} \cdot (k_1 + 2 k_2 + 2 k_3 + k_4)$</li>
+          </ul>
+        </section>
+        <section data-background="static/calculation.svg" data-background-size="contain">
+          <h3>Berechnungsschritte</h3>
+          <div style="height:45vh"></div>
+          <ul>
+            <li class="fragment">Naive Implementierung: 5 Texturen</li>
+            <li class="fragment">Mit Tricks: 2 Texturen</li>
+          </ul>
+          <aside class="notes"><script type="text/template">
+              * Zwei Komponenten, 4 Kanäle pro Textur -> Reduktion auf 3 Texturen
+              * Aber es geht besser!
+          </script></aside>
+        </section>
+        <section data-background-iframe="applets/reactdiff-rungekutta.html" data-background-size="contain"></section>
+        <section>
 
-		<script src="lib/js/head.min.js"></script>
-		<script src="js/reveal.js"></script>
+      </div>
+    </div>
 
-		<script>
-			// More info about config & dependencies:
-			// - https://github.com/hakimel/reveal.js#configuration
-			// - https://github.com/hakimel/reveal.js#dependencies
-			Reveal.initialize({
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+
+    <script>
+      // More info about config & dependencies:
+      // - https://github.com/hakimel/reveal.js#configuration
+      // - https://github.com/hakimel/reveal.js#dependencies
+      Reveal.initialize({
                 transition: "fade",
                 previewLinks: true,
                 viewDistance: 1,
-				dependencies: [
-					{ src: 'plugin/markdown/marked.js' },
-					{ src: 'plugin/markdown/markdown.js' },
-					{ src: 'plugin/notes/notes.js', async: true },
-					{ src: 'plugin/highlight/highlight.js', async: true,
-						callback: function() { hljs.initHighlightingOnLoad(); } },
-					{ src: 'plugin/math/math.js', async: true }
-				]
-			});
-		</script>
-	</body>
+        dependencies: [
+          { src: 'plugin/markdown/marked.js' },
+          { src: 'plugin/markdown/markdown.js' },
+          { src: 'plugin/notes/notes.js', async: true },
+          { src: 'plugin/highlight/highlight.js', async: true,
+            callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/math/math.js', async: true }
+        ]
+      });
+    </script>
+  </body>
 </html>

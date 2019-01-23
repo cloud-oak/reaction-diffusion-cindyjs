@@ -1,17 +1,18 @@
 <!DOCTYPE html>
-<html>
-	<head>
+<html> <head>
 		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 		<script type="text/javascript" src="https://cindyjs.org/dist/snapshot/Cindy.js"></script>
 		<script type="text/javascript" src="https://cindyjs.org/dist/snapshot/CindyGL.js"></script>
 		<title>3dgol</title>
-   	<link rel="stylesheet" type="text/css" href="theme.css">
+   	<link rel="stylesheet" type="text/css" href="/static/theme.css">
 	</head>
 
 	<body>
+        <div class="flex row">
+        <div class="flex col">
 		<div id="CSCanvas" class="CindyJS-widget" style="position: relative; width: 512px; height: 512px;"></div>
 		<script id="csdraw" type="text/x-cindyscript">
-			repeat(20, colorplot((0, 0), (statewidth, 0), "state", newstate(#)));
+			repeat(3, colorplot((0, 0), (statewidth, 0), "state", newstate(#)));
 
 			// Ab hier: 3D
 			origin = zoom * EXTENT * [
@@ -38,7 +39,20 @@
 			t = mod(t + 1, EXTENT);
 		</script>
 		<script id="csinit" type="text/x-cindyscript">
-			EXTENT = 128; // Extent of the cube for each dimension
+			EXTENT = 64; // Extent of the cube for each dimension
+
+			da = 0.18;
+			db = 0.04;
+			k  = 0.06;
+			f  = 0.05;
+			isoval = 1.0; // ISO Surface cutoff
+
+			javascript("window.da = " + da);
+			javascript("window.db = " + db);
+			javascript("window.k = " + k);
+			javascript("window.f = " + f);
+			javascript("window.isoval = " + isoval);
+            javascript("postinitialize();");
 
 			target = [EXTENT,EXTENT,EXTENT]/2;
 			statewidth   = EXTENT * EXTENT;
@@ -85,20 +99,14 @@
 				)
 			);
 
-			da = 0.10;
-			db = 0.04;
-			k  = 0.06;
-			f  = 0.05;
-
-			// initialize cube
-			initializeball() := (
-				colorplot((0, 0), (statewidth, 0), "state", 
-					pt = spacepoint(#);
-					if(|pt - target| <= 16,
-						[random(), random(), 0],
-						[0, 0, 0]
-					)
-				);
+			initializeball() := colorplot((0, 0), (statewidth, 0), "state", 
+					dist = |spacepoint(#) - target| / (2 * EXTENT);
+					scale = 0.1 * exp(- |5*dist|^4 );
+					[
+						scale * (4 + random()),
+						scale * (4 + random()),
+						0
+					]
 			);
 			initializepoint() := (
 				colorplot((0, 0), (statewidth, 0), "state", 
@@ -122,7 +130,7 @@
 				laplacian = -6 * val + sum(apply(deltas, d, get(pt + d)));
 				deltax = da * laplacian.x - val.x * val.y * val.y + f * (1-val.x);
 				deltay = db * laplacian.y + val.x * val.y * val.y - (k+f) * val.y;
-				(val.x + 0.5*deltax, val.y + 0.5*deltay, 0)
+				(val.x + 1.1*deltax, val.y + 1.1*deltay, 0)
 			);
 			ray(t) := origin + t * dir;
 			raytrace()  := (
@@ -150,70 +158,82 @@
 		<script id="csmousedown" type="text/x-cindyscript">
 			lastmouse = mouse();
 		</script>
-		<script type="text/javascript">
-			var cjs = CindyJS({
-				scripts: "cs*",
-				autoplay: true,
-				ports: [{
-					id: "CSCanvas",
-					width: 800,
-					height: 800,
-					transform: [{
-						visibleRect: [-1, 1, 1, -1]
-					}]
-				}]
-			});
-			function change(variable, val) {
-				statusstring = variable + " = " + val;
-				document.getElementById(variable + "value").innerHTML = statusstring;
-				cjs.evokeCS(statusstring);
-			};
-			function init(type) {
-				command = "initialize" + type + "();";
-				cjs.evokeCS(command);
-			}
-		</script>
-		<table>
+		<table id="buttons">
 			<tr>
 				<td><button type="button" onclick="init('point')">Init Point</button></td>
 				<td><button type="button" onclick="init('ball')">Init Ball</button></td>
 				<td><button type="button" onclick="init('full')">Init Full</button></td>
 			</tr>
 		</table>
-		<table>
+        </div>
+		<table id="sliders">
 			<tr>
-				<td id="davalue">
-					da = 0.10
-				</td>
-				<td>
-					<input type="range" min="0.0" max="0.5" value="0.10" step="0.001" oninput="change('da', this.value)">
-				</td>
+				<th>iso</th>
+				<th>da</th>
+				<th>db</th>
+				<th>k</th>
+				<th>f</th>
 			</tr>
+            <tr>
+                <td id="isovalvalue"></td>
+                <td id="davalue"></td>
+                <td id="dbvalue"></td>
+                <td id="kvalue"></td>
+                <td id="fvalue"></td>
+            </td>
 			<tr>
-				<td id="dbvalue">
-					db = 0.04
+				<td>
+					<input type="range" id="isoslider" orient="vertical" min="0.0" max="1.0" value="1.0" step="0.001" oninput="change('isoval', this.value)">
 				</td>
 				<td>
-					<input type="range" min="0.0" max="0.5" value="0.04" step="0.001" oninput="change('db', this.value)">
-				</td>
-			</tr>
-			<tr>
-				<td id="kvalue">
-					k = 0.06
+					<input type="range" id="daslider" orient="vertical" min="0.0" max="0.3" value="0.10" step="0.001" oninput="change('da', this.value)">
 				</td>
 				<td>
-					<input type="range" min="0.0" max="0.5" value="0.06" step="0.001" oninput="change('k', this.value)">
-				</td>
-			</tr>
-			<tr>
-				<td id="fvalue">
-					f = 0.05
+					<input type="range" id="dbslider" orient="vertical" min="0.0" max="0.3" value="0.04" step="0.001" oninput="change('db', this.value)">
 				</td>
 				<td>
-					<input type="range" min="0" max="0.5" value="0.05" step="0.001" oninput="change('f', this.value)">
+					<input type="range" id="kslider" orient="vertical" min="0.05" max="0.09" value="0.06" step="0.001" oninput="change('k', this.value)">
+				</td>
+				<td>
+					<input type="range" id="fslider" orient="vertical" min="0.05" max="0.09" value="0.05" step="0.001" oninput="change('f', this.value)">
 				</td>
 			</tr>
 		</table>
-		<script type="text/javascript"
+        </div>
+		<script type="text/javascript">
+			var cjs = CindyJS({
+				scripts: "cs*",
+				autoplay: true,
+				ports: [{
+					id: "CSCanvas",
+					transform: [{
+						visibleRect: [-1, 1, 1, -1]
+					}]
+				}]
+			});
+			function change(variable, val) {
+				numstring = Number.parseFloat(val).toFixed(3);
+				document.getElementById(variable + "value").innerHTML = numstring;
+				cjs.evokeCS(variable + "=" + numstring);
+
+			};
+			function init(type) {
+				command = "initialize" + type + "();";
+				cjs.evokeCS(command);
+			}
+            function postinitialize() {
+                console.log("TAG " + window.da);
+                document.getElementById("daslider").value = window.da;
+                document.getElementById("dbslider").value = window.db;
+                document.getElementById("kslider").value  = window.k;
+                document.getElementById("fslider").value  = window.f;
+                document.getElementById("isoslider").value  = window.isoval;
+                change("da", window.da);
+                change("db", window.db);
+                change("isoval", window.isoval);
+                change("k", window.k);
+                change("f", window.f);
+            }
+		</script>
 	</body>
 </html>

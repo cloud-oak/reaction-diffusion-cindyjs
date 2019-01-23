@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript" src="https://cindyjs.org/dist/snapshot/Cindy.js"></script>
+    <script type="text/javascript" src="https://cindyjs.org/dist/snapshot/CindyGL.js"></script>
+    <title>Conway's Game of Life in CindyGL</title>
+  </head>
+
+  <body>
+    <div id="CSCanvas"></div>
+
+    <script id="csinit" type="text/x-cindyscript">
+      extent = 128; //extent of the playing-grid
+      createimage("gol", extent, extent);
+      colorplot("gol", if(random() > .6, 1, 0)); //random values as starting image
+
+      get(x, y) := imagergb([0, 0], [extent, 0], "gol", [x, y], interpolate -> false, repeat -> false).r;
+
+      deltas = [(-1,-1), (-1,0), (-1,+1), (0,-1),  (0,+1), (+1,-1), (+1,0), (+1,+1)];
+      countneighbors(x, y) := sum( apply(deltas, delta, get(delta.x + x, delta.y + y)));
+
+      newstate(x, y) := (
+        number = countneighbors(x, y); //number of living neighbors
+        if(get(x, y) == 1,
+
+          //if the cell lives then it will die if it has less than 2 neighbours or more than 3 neighbours
+          if((number < 2) % (number > 3), 0, 1),
+
+          //if cell was dead then 3 are required to be born
+          if(number == 3, 1, 0)
+        )
+      );
+
+      //creating a texture with at least extent tiles of size extent
+      tiles = ceil(sqrt(extent));
+      EXTENT = tiles*extent;
+      createimage("history", EXTENT, EXTENT);
+      //saving the 0th-generation in the most bottom-left tile, i.e. tile 0
+      canvas([0, 0], [EXTENT, 0], "history", drawimage([0, 0], [extent, 0], "gol", interpolate -> false));
+      t = 0;
+
+      //volume rendering
+
+      target = .5*extent*[1, 1, 1]; //fixing the center of the rendered cube in the middle of the canvas
+      //starting values for the origin
+      r = 1.4*extent;
+      theta = 1;
+      phi = 0;
+
+      ray(t) := origin + t*dir;
+
+      stepsize = (r + .866*extent)/500; //making the ray long enough to cover the whole cube, where .5*sqrt(3) = .866...
+      //along the ray, volume gets added and at the end scaled
+      raytracing() := (
+        volume = 0;
+        repeat(500, volume = volume + evaluateVoxel(ray(#*stepsize)));
+        re(log(volume + 1))/log(300);
+        //re(sqrt(volume))/sqrt(200);
+      );
+
+      //every voxel inside the rendered cube gets mapped to the 2-dimensional texture, otherwise the volume is 0
+      evaluateVoxel(voxel) := if((min(voxel) < 0) % (extent < max(voxel)), 0,
+        tile = mod(ceil(voxel.z) - extent + t, extent);
+        position = [voxel.x + extent*mod(tile, tiles), voxel.y + extent*floor(tile/tiles)];
+        imagergb([0, 0], [EXTENT, 0], "history", position, interpolate -> false).r;
+      );
+
+      //variables for quality of life
+      update = true;
+      orientation = 1;
+      render = true;
+    </script>
+
+    <script id="csdraw" type="text/x-cindyscript">
+      if(update,
+        colorplot([0, 0], [extent, 0], "gol", newstate(#.x, #.y)); //overwrite texture "gol"
+        //saving the new generation in the next tile from left to right and bottom to top
+        t = mod(t + 1, extent);
+        x = extent*mod(t, tiles);
+        y = extent*floor(t/tiles);
+        canvas([0, 0], [EXTENT, 0], "history", drawimage([x, y], [x + extent, y], "gol", interpolate -> false));
+        if(render, phi = phi - orientation*.002*pi); //rotating the rendered image with a period of 1000 frames
+      );
+
+      //volume rendering
+
+      if(render,
+        origin = r*[sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta)] + target;
+        //computing a basis with one vector pointing towards the target and one directly up
+        mdir = (target - origin)/|target - origin|;
+        v = cross(mdir, [0, 0, 1]);
+        v = v/|v|;
+        w = cross(v, mdir);
+        w = w/|w|;
+
+        //using volume rendering for every direcion corresponding to the pixels of the canvas
+        colorplot(
+          dir = mdir + #.x*v + #.y*w;
+          dir = dir/|dir|;
+          raytracing();
+        ),
+        //if the cube doesn't get rendered, the newest generation gets drawn and is, if paused, editable
+        drawimage([-1, -1], [1, -1], "gol", interpolate -> false);
+        if(!update, draw(mouse(), alpha -> .4));
+      );
+    </script>
+
+    <script id="csmousedown" type="text/x-cindyscript">
+      if(render,
+        update = false;
+        lastmouse = mouse(),
+        //editing the current generation
+        if(!update,
+          colorplot([0, 0], [extent, 0], "gol",
+            d = .5*extent*(mouse() + [1, 1]) - #;
+            if((max(d) < .5) & (-.5 < min(d)), 1 - get(#.x, #.y), get(#.x, #.y));
+          );
+        );
+      );
+    </script>
+
+    <script id="csmousedrag" type="text/x-cindyscript">
+      if(render,
+        d = mouse() - lastmouse;
+        theta = min(max(theta + d.y, .01), pi - .01);
+        phi = phi - d.x;
+        lastmouse = mouse();
+      );
+    </script>
+
+    <script id="csmouseup" type="text/x-cindyscript">
+      if(render,
+        update = true;
+        if(d.x > 0, orientation = 1, orientation = -1);
+      );
+    </script>
+
+    <script id="cskeydown" type="text/x-cindyscript">
+      //print("pressed key: " + keycode());
+      if(render,
+        //zooming in and out with +/-
+        if(keycode() == 187, r = r*exp(-.005));
+        if(keycode() == 189, r = r*exp(.005)),
+        //while the current generation is editable, it can be cleared by pressing c
+        if(!update, if(keycode() == 67, colorplot("gol", 0)));
+      );
+      if(keycode() == 32, update = !update); //the game can be paused with the spacebar
+      if(keycode() == 18, render = !render); //switching between rendering the cube and drawing the current generation by pressing the Alt-key
+      if(keycode() == 16, render = !render); //switching between rendering the cube and drawing the current generation by pressing the Alt-key
+    </script>
+
+    <script type="text/javascript">
+    CindyJS({
+      scripts: "cs*",
+      autoplay: true,
+      ports: [{
+        id: "CSCanvas",
+        width: 512,
+        height: 512,
+        transform: [{
+          visibleRect: [-1, 1, 1, -1]
+        }]
+      }]
+    });
+    </script>
+  </body>
+</html>

@@ -49,11 +49,12 @@
     </script>
     
     <script id="csmousedown" type="text/x-cindyscript">
-      colorplot("state", min(get(#_1,#_2), |# - mouse()|^2/100));
+      colorplot("state", min(get(#_1,#_2),
+        if(|# - mouse()| < 30, 0, 1)));
     </script>
     
     <script id="csdraw" type="text/x-cindyscript">
-      repeat(4,
+      repeat(10,
         colorplot("state", newstate(#.x, #.y));
       );
       colorplot(

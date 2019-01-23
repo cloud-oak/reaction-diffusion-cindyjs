@@ -5,12 +5,12 @@
     <script type="text/javascript" src="https://cindyjs.org/dist/snapshot/Cindy.js"></script>
     <script type="text/javascript" src="https://cindyjs.org/dist/snapshot/CindyGL.js"></script>
     <title>3dgol</title>
-     <link rel="stylesheet" type="text/css" href="/static/theme.css">
+     <link rel="stylesheet" type="text/css" href="static/theme.css">
   </head>
 
   <body>
-        <div class="flex row">
-        <div class="flex col">
+    <div class="flex row">
+    <div class="flex col">
     <div id="CSCanvas" class="CindyJS-widget" style="position: relative; width: 512px; height: 512px;"></div>
     <script id="csdraw" type="text/x-cindyscript">
       repeat(3, update());
@@ -59,7 +59,7 @@
       javascript("window.k = " + k);
       javascript("window.f = " + f);
       javascript("window.isoval = " + isoval);
-            javascript("postinitialize();");
+      javascript("postinitialize();");
 
       target = [EXTENT,EXTENT,EXTENT]/2;
       statewidth   = EXTENT * EXTENT;
@@ -120,12 +120,12 @@
         if(p.x<0 % p.x>=EXTENT %
            p.y<0 % p.y>=EXTENT %
            p.z<0 % p.z>=EXTENT,
-                    (0, 0, 0, 0)
+          (0, 0, 0, 0)
         ,
           imagergba((0, 0), (statewidth, 0), "state",
-              (floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
-              floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
-              interpolate->false, repeat->false
+            (floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
+            floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
+            interpolate->false, repeat->false
           )
         )
       );
@@ -142,22 +142,22 @@
           (0, 0, 0, 0)
         ,
           imagergba((0, 0), (statewidth, 0), "tmp",
-              (floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
-              floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
-              interpolate->false, repeat->false
+            (floor(p.x) + EXTENT * mod(floor(p.z), TILESX),
+            floor(p.y) + EXTENT * floor(floor(p.z) / TILESX)),
+            interpolate->false, repeat->false
           )
         )
       );
 
       // initialize
       initializeball() := colorplot((0, 0), (statewidth, 0), "state", 
-          dist = |spacepoint(#) - target| / (2 * EXTENT);
-          scale = 0.1 * exp(- |5*dist|^4 );
-          [
-            scale * (4 + random()),
-            scale * (4 + random()),
-            0
-          ]
+        dist = |spacepoint(#) - target| / (2 * EXTENT);
+        scale = 0.1 * exp(- |5*dist|^4 );
+        [
+          scale * (4 + random()),
+          scale * (4 + random()),
+          0
+        ]
       );
       initializepoint() := (
         colorplot((0, 0), (statewidth, 0), "state", 

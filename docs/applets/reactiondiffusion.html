@@ -21,7 +21,7 @@
     
     <script id="csinit" type="text/x-cindyscript">
       createimage("state", 512, 256);
-		update = false;
+		  update = false;
 
       get(x, y) :=  (
 		  rgb = imagergb("state", (x,y), repeat->false, interpolate->false);
@@ -57,12 +57,12 @@
         deltaq = [laplacian_1 - q_1*q_2*q_2 + f * (1-q_1),
                 0.5 * laplacian_2 + q_1*q_2*q_2 - (k+f) * q_2];
 
-        store(q+deltaq)
+        store(q+0.5 * deltaq)
       );
     </script>
     
     <script id="csmousedown" type="text/x-cindyscript">
-		update = true;
+		  update = true;
       // colorplot("state", store((0.2+.3*random(), .2+.2*random())));
       colorplot("state", 
 			val = get(#_1, #_2);
@@ -73,7 +73,7 @@
 	 </script>
     <script id="csdraw" type="text/x-cindyscript">    
 		if(update,
-			repeat(30, //do 10 steps of iteration in each drawing step
+			repeat(50, //do 10 steps of iteration in each drawing step
 			  colorplot("state", newstate(#.x, #.y)); //overwrite texture "state"
 			);
 		);

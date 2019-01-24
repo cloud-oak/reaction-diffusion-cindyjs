@@ -37,13 +37,24 @@
           <h2>Reaction-Diffusion Systems<h2>
         </section>
         <section>
-          <h3>Hauptziel</h3>
+          <h3>Ziel</h3>
           Kontinuierliches System mit Volume Rendering darstellen
+        </section>
+        <section>
+          <h3>Reaction (Gray-Scott)</h3>
+            <p>Zwei chemische Stoffe $A, B$</p>
+            <p>Reaktionen:</p>
+            <ul>
+              <li class="fragment">$A + 2B \to 3B$</li>
+              <li class="fragment">$B \to \varnothing$</li>
+              <li class="fragment">$A$ wird gleichmäßig zugeführt</li>
+            </ul>
+          <aside class="notes">"Heat Equation"</aside>
         </section>
         <section>
           <h3>Diffusion</h3>
             Differentalgleichung
-            $$\dot y = d \cdot \nabla^2 y $$
+            $$\partial_t y = d \cdot \nabla^2 y $$
             <iframe width="540px" height="280px" data-src="applets/diffusion.html"></iframe>
           <aside class="notes">"Heat Equation"</aside>
         </section>
@@ -107,9 +118,6 @@
           </ul>
         </section>
         <section data-background-iframe="applets/reactdiff-euler.html" data-background-size="contain"></section>
-        <section>
-          <h3>Euler explodiert numerisch!</h3>
-        </section>
         <section data-background-iframe="applets/integrationmethods.html">
           <div style="position:absolute;padding-bottom:200px;left:10px;">
             $\dot{y} = \begin{pmatrix}0&1\\ -1&0\end{pmatrix}y$
@@ -134,10 +142,12 @@
               <li class="fragment">Naive Implementierung: 5 Texturen</li>
               <li class="fragment">Mit Tricks: 2 Texturen</li>
             </ul>
-            <aside class="notes"><script type="text/template">
+            <aside class="notes" data-markdown>
+              <script type="text/template">
                 * Zwei Komponenten, 4 Kanäle pro Textur -> Reduktion auf 3 Texturen
                 * Aber es geht besser!
-            </script></aside>
+              </script>
+            </aside>
           </section>
           <section>
             <h3>Runge-Kutta Tricks</h3>
@@ -154,9 +164,51 @@
             </ul>
           </section>
         </section>
-        <section data-background-iframe="applets/reactdiff-rungekutta.html" data-background-size="contain"></section>
+        <section data-background-iframe="applets/reactdiff-rungekutta-bland.html" data-background-size="contain"></section>
         <section>
-
+          <section>
+            <h3>Überbelichten</h3>
+              <div class="fragment">Normales Alpha Compositing: <img data-src="static/colorramp_bland.png"></div>
+              <div class="fragment">Überbelichtung: <img data-src="static/colorramp_rich.png"></div>
+              <aside class="notes" data-markdown>
+                <script type="text/template">
+                  Interessante Konfigurationen:
+                  * iso:0.5, da:0.3, db: 0.064, k: 0.08, f: 0.06 (Init Point)
+               </script>
+              </aside>
+          </section>
+          <section>
+            <h3>Implementierung</h3>
+            <ul>
+              <li class="fragment">Normales Compositing stoppt wenn $\alpha_{\text{acc}} = 1$</li>
+              <li class="fragment">Ohne Abbruchbedingung: Pixel wird überbelichtet</li>
+              <li class="fragment">Wird bei Ausgabe auf $[0,1]$ beschnitten</li>
+          </section>
+          <section>
+            <div class='left' style='float:left;width:48%'>
+              <h3>Vorher</h3>
+              <img data-src="static/system_bland.png">
+            </div>    
+            <div class='right' style='float:right;width:48%'>
+              <h3>Nachher</h3>
+              <img data-src="static/system_rich.png">
+            </div>
+          </section>
+        </section>
+        <section>
+          <section>
+            <h3>Niveaumengen</h3>
+            Volume Rendering + Konventionelles Rendering
+          </section>
+        </section>
+        <section data-background-iframe="applets/reactdiff-rungekutta.html" data-background-size="contain">
+            <aside class="notes" data-markdown>
+              <script type="text/template">
+                Interessante Konfigurationen:
+                * iso:0.5, da:0.3, db: 0.064, k: 0.08, f: 0.06 (Init Point)
+             </script>
+            </aside>
+        </section>
       </div>
     </div>
 
@@ -164,9 +216,6 @@
     <script src="js/reveal.js"></script>
 
     <script>
-      // More info about config & dependencies:
-      // - https://github.com/hakimel/reveal.js#configuration
-      // - https://github.com/hakimel/reveal.js#dependencies
       Reveal.initialize({
                 history: true,
                 transition: "slide",

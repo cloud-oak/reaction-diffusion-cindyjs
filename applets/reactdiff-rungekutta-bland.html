@@ -2,8 +2,8 @@
 <html>
   <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <script type="text/javascript" src="https://cindyjs.org/dist/snapshot/Cindy.js"></script>
-    <script type="text/javascript" src="https://cindyjs.org/dist/snapshot/CindyGL.js"></script>
+    <script type="text/javascript" src="https://cindyjs.org/dist/latest/Cindy.js"></script>
+    <script type="text/javascript" src="https://cindyjs.org/dist/latest/CindyGL.js"></script>
     <title>3dgol</title>
      <link rel="stylesheet" type="text/css" href="static/theme.css">
   </head>
@@ -255,7 +255,7 @@
 
       raytrace()  := (
         totalcolor = [0,0,0];
-        // totalalpha = 0;
+        totalalpha = 0;
         stepsize = zoom * EXTENT * 1.73205080757 / 512;
         flying = true;
 
@@ -263,27 +263,12 @@
           if(flying,
             pos = ray(# * stepsize);
             val = valAt(pos);
-            if(val > isoval,
-              flying = false;
-              normal = [
-                valAt(pos+[1,0,0]) - valAt(pos-[1,0,0]),
-                valAt(pos+[0,1,0]) - valAt(pos-[0,1,0]),
-                valAt(pos+[0,0,1]) - valAt(pos-[0,0,1])
-              ];
-              normal = normal / |normal|;
-              eye = (origin - pos) / |pos - origin|;
-              totalcolor = totalcolor +
-                ambient + 
-                directional * (lightdir * normal) +
-                specular * (lightdir * (eye - 2 * normal * (normal * eye)))^3;
-            ,
-              alpha = 1.5*max(0,val-0.05)^4;
-              // totalalpha = totalalpha + alpha;
-              // if(totalalpha <= 1,
+            alpha = 0.3 * max(0,val-0.05)^4;
+            totalalpha = totalalpha + alpha;
+            if(totalalpha <= 1,
               totalcolor = totalcolor + alpha * volume;
-              // );
             );
-          )
+          );
         );
         totalcolor
       );
@@ -307,23 +292,18 @@
         </div>
     <table id="sliders">
       <tr>
-        <th>iso</th>
         <th>da</th>
         <th>db</th>
         <th>k</th>
         <th>f</th>
       </tr>
             <tr>
-                <td id="isovalvalue"></td>
                 <td id="davalue"></td>
                 <td id="dbvalue"></td>
                 <td id="kvalue"></td>
                 <td id="fvalue"></td>
             </td>
       <tr>
-        <td>
-          <input type="range" id="isoslider" orient="vertical" min="0.0" max="1.0" value="1.0" step="0.001" oninput="change('isoval', this.value)">
-        </td>
         <td>
           <input type="range" id="daslider" orient="vertical" min="0.0" max="0.3" value="0.10" step="0.001" oninput="change('da', this.value)">
         </td>
@@ -366,10 +346,8 @@
                 document.getElementById("dbslider").value = window.db;
                 document.getElementById("kslider").value  = window.k;
                 document.getElementById("fslider").value  = window.f;
-                document.getElementById("isoslider").value  = window.isoval;
                 change("da", window.da);
                 change("db", window.db);
-                change("isoval", window.isoval);
                 change("k", window.k);
                 change("f", window.f);
             }

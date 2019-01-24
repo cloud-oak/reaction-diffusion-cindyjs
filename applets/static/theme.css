@@ -1,6 +1,6 @@
 body {
-	background: black;
-	color: white;
+	background: white;
+	color: black;
     font-family: sans;
   margin: 0px;
 }
@@ -27,13 +27,13 @@ input {
 }
 
 button {
-    color: white;
-    background: #3c3c3c;
+    color: black;
+    background: #c3c3c3;
     border: none;
     padding: 15px 32px;
     transition-duration: 0.2s;
 }
 
 button:hover {
-    background-color: black;
+    background-color: #777777;
 }
